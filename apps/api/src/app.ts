@@ -30,10 +30,16 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// API routes will be added here
+// Import routes
+import uploadRoutes from './routes/upload.routes';
+
+// API routes
 app.get('/api', (_req, res) => {
   res.json({ message: 'AI Dashboard API is running!' });
 });
+
+// Mount upload routes
+app.use('/api/upload', uploadRoutes);
 
 // 404 handler
 app.use('*', (_req, res) => {

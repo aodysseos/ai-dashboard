@@ -2,6 +2,71 @@
 
 import { BaseEntity, ApiResponse, PaginatedResponse } from '../core';
 
+// Upload related types
+export interface PresignedUrlRequest {
+  filename: string;
+  size: number;
+  contentType: string;
+}
+
+export interface PresignedUrlResponse {
+  key: string;
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+export interface UploadRequest {
+  files: PresignedUrlRequest[];
+}
+
+export interface UploadResponse {
+  uploads: PresignedUrlResponse[];
+}
+
+export interface UploadError {
+  code: string;
+  message: string;
+  field?: string;
+}
+
+// Multipart upload types
+export interface MultipartUploadInitiateRequest {
+  filename: string;
+  contentType: string;
+  size: number;
+}
+
+export interface MultipartUploadInitiateResponse {
+  uploadId: string;
+  key: string;
+}
+
+export interface MultipartUploadPartRequest {
+  uploadId: string;
+  key: string;
+  partNumber: number;
+}
+
+export interface MultipartUploadPartResponse {
+  partNumber: number;
+  uploadUrl: string;
+  expiresAt: string;
+}
+
+export interface MultipartUploadCompleteRequest {
+  uploadId: string;
+  key: string;
+  parts: Array<{
+    partNumber: number;
+    etag: string;
+  }>;
+}
+
+export interface MultipartUploadCompleteResponse {
+  location: string;
+  etag: string;
+}
+
 // Health check types
 export interface HealthCheckResponse {
   status: 'ok' | 'error';

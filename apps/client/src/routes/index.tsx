@@ -4,7 +4,7 @@ import { Badge } from '../dashboard/components/badge'
 import { DashboardLayout } from '../dashboard/layout'
 import { useHealthCheck, useApiStatus } from '../common/hooks/useApi'
 
-export default function Dashboard() {
+export default function Home() {
   const { data: healthData, isLoading: healthLoading, error: healthError } = useHealthCheck()
   const { isLoading: apiLoading, error: apiError } = useApiStatus()
 
@@ -154,6 +154,7 @@ export default function Dashboard() {
   )
 }
 
-export const Route = createFileRoute('/Dashboard')({
-  component: Dashboard,
+export const Route = createFileRoute('/')({
+  component: Home,
 })
+

@@ -7,6 +7,8 @@ export * from './input'
 export * from './separator'
 export * from './skeleton'
 export * from './tooltip'
+export * from './progress'
+export * from './pdf-upload'
 
 // Breadcrumb Components
 export * from './breadcrumb'
