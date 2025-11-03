@@ -2,7 +2,7 @@ import { S3Client, PutObjectCommand, ServerSideEncryption } from '@aws-sdk/clien
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export class S3Service {
-  private s3Client: S3Client;
+  private presignClient: S3Client;
   private bucketName: string;
   private uploadExpiration: number;
 
@@ -17,26 +17,25 @@ export class S3Service {
     this.uploadExpiration = parseInt(process.env['S3_UPLOAD_EXPIRATION'] || '300', 10);
 
     if (isDevelopment) {
-      // Development: Use Minio with default credentials
-      // Use the public endpoint for generating pre-signed URLs so the signature matches
+      // Development: Use Minio client for generating pre-signed URLs
+      // Uses public endpoint (localhost:9000) for correct signature validation
       const publicEndpoint = process.env['S3_PUBLIC_ENDPOINT'] || 'http://localhost:9000';
-      
-      this.s3Client = new S3Client({
+      this.presignClient = new S3Client({
         region: 'us-east-1',
         endpoint: publicEndpoint,
-        forcePathStyle: true, // Required for Minio
+        forcePathStyle: true,
         credentials: {
           accessKeyId: 'minioadmin',
           secretAccessKey: 'minioadmin',
         },
       });
     } else {
-      // Production: Use AWS S3 with environment variables
+      // Production: Use AWS S3
       const region = process.env['AWS_REGION'] || 'us-east-1';
       const accessKeyId = process.env['AWS_ACCESS_KEY_ID'] || 'test-access-key';
       const secretAccessKey = process.env['AWS_SECRET_ACCESS_KEY'] || 'test-secret-key';
 
-      this.s3Client = new S3Client({
+      this.presignClient = new S3Client({
         region,
         credentials: {
           accessKeyId,
@@ -81,7 +80,8 @@ export class S3Service {
 
       const command = new PutObjectCommand(commandOptions);
 
-      const presignedUrl = await getSignedUrl(this.s3Client, command, {
+      // Use presignClient for generating pre-signed URLs with correct signature
+      const presignedUrl = await getSignedUrl(this.presignClient, command, {
         expiresIn: this.uploadExpiration,
       });
 

@@ -9,7 +9,8 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export class S3MultipartService {
-  private s3Client: S3Client;
+  private s3Client: S3Client; // For direct S3 operations (initiate, complete, abort)
+  private presignClient: S3Client; // For generating pre-signed URLs
   private bucketName: string;
   private uploadExpiration: number;
 
@@ -24,18 +25,27 @@ export class S3MultipartService {
     this.uploadExpiration = parseInt(process.env['S3_UPLOAD_EXPIRATION'] || '300', 10);
 
     if (isDevelopment) {
-      // Development: Use Minio with default credentials
-      // Use the public endpoint for generating pre-signed URLs so the signature matches
-      const publicEndpoint = process.env['S3_PUBLIC_ENDPOINT'] || 'http://localhost:9000';
+      // Development: Use Minio with two different clients
+      const credentials = {
+        accessKeyId: 'minioadmin',
+        secretAccessKey: 'minioadmin',
+      };
       
+      // Client for direct S3 operations (uses internal Docker network)
       this.s3Client = new S3Client({
         region: 'us-east-1',
+        endpoint: 'http://minio:9000',
+        forcePathStyle: true,
+        credentials,
+      });
+      
+      // Client for generating pre-signed URLs (uses public endpoint for correct signatures)
+      const publicEndpoint = process.env['S3_PUBLIC_ENDPOINT'] || 'http://localhost:9000';
+      this.presignClient = new S3Client({
+        region: 'us-east-1',
         endpoint: publicEndpoint,
-        forcePathStyle: true, // Required for Minio
-        credentials: {
-          accessKeyId: 'minioadmin',
-          secretAccessKey: 'minioadmin',
-        },
+        forcePathStyle: true,
+        credentials,
       });
     } else {
       // Production: Use AWS S3 with environment variables
@@ -43,13 +53,16 @@ export class S3MultipartService {
       const accessKeyId = process.env['AWS_ACCESS_KEY_ID'] || 'test-access-key';
       const secretAccessKey = process.env['AWS_SECRET_ACCESS_KEY'] || 'test-secret-key';
 
-      this.s3Client = new S3Client({
+      const client = new S3Client({
         region,
         credentials: {
           accessKeyId,
           secretAccessKey,
         },
       });
+      
+      this.s3Client = client;
+      this.presignClient = client; // Same client for production
     }
   }
 
@@ -119,7 +132,8 @@ export class S3MultipartService {
         PartNumber: partNumber,
       });
 
-      const presignedUrl = await getSignedUrl(this.s3Client, command, {
+      // Use presignClient for generating pre-signed URLs with correct signature
+      const presignedUrl = await getSignedUrl(this.presignClient, command, {
         expiresIn: this.uploadExpiration,
       });
 
