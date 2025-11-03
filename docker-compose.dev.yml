@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: development
+    container_name: ai-dashboard-api-dev
+    ports:
+      - "3001:3001"
+    volumes:
+      # Mount source code for hot-reloading
+      - ./apps/api/src:/app/apps/api/src
+      - ./packages:/app/packages
+      # Use named volumes for node_modules to avoid conflicts
+      - api_node_modules:/app/node_modules
+      - api_app_node_modules:/app/apps/api/node_modules
+    environment:
+      - NODE_ENV=development
+      - API_PORT=3001
+      - API_HOST=0.0.0.0
+      - CLIENT_URL=http://localhost:5173
+      # AWS S3 Configuration
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_UPLOAD_EXPIRATION=${S3_UPLOAD_EXPIRATION:-300}
+    env_file:
+      - ./apps/api/.env
+    networks:
+      - ai-dashboard-network
+    restart: unless-stopped
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+      target: development
+    container_name: ai-dashboard-client-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount source code for hot-reloading
+      - ./apps/client/src:/app/apps/client/src
+      - ./apps/client/index.html:/app/apps/client/index.html
+      - ./apps/client/vite.config.ts:/app/apps/client/vite.config.ts
+      - ./apps/client/tailwind.config.js:/app/apps/client/tailwind.config.js
+      - ./apps/client/postcss.config.js:/app/apps/client/postcss.config.js
+      - ./packages:/app/packages
+      # Use named volumes for node_modules to avoid conflicts
+      - client_node_modules:/app/node_modules
+      - client_app_node_modules:/app/apps/client/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3001
+      - VITE_APP_NAME=AI Dashboard
+    env_file:
+      - ./apps/client/.env
+    networks:
+      - ai-dashboard-network
+    depends_on:
+      - api
+    restart: unless-stopped
+
+networks:
+  ai-dashboard-network:
+    driver: bridge
+
+volumes:
+  api_node_modules:
+  api_app_node_modules:
+  client_node_modules:
+  client_app_node_modules:
+

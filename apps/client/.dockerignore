@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Environment files
+.env
+.env.*
+
+# Testing
+coverage/
+__tests__/
+*.test.tsx
+*.test.ts
+*.spec.tsx
+*.spec.ts
+
+# Development files
+vite.config.ts
+vitest.config.ts
+tsconfig.node.json
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# ESLint
+.eslintcache
+

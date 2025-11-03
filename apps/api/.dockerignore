@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Environment files
+.env
+.env.*
+
+# Testing
+coverage/
+__tests__/
+*.test.ts
+*.spec.ts
+
+# Development files
+nodemon.json
+jest.config.js
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
