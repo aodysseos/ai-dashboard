@@ -7,63 +7,21 @@ import {
   ServerSideEncryption
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createS3Clients } from './s3.client';
 
 export class S3MultipartService {
-  private s3Client: S3Client; // For direct S3 operations (initiate, complete, abort)
-  private presignClient: S3Client; // For generating pre-signed URLs
+  private s3Client: S3Client;
+  private presignClient: S3Client;
   private bucketName: string;
   private uploadExpiration: number;
 
   constructor() {
-    const isDevelopment = process.env['NODE_ENV'] === 'development';
+    const config = createS3Clients();
     
-    // Use hardcoded bucket name for development, environment variable for production
-    this.bucketName = isDevelopment 
-      ? 'ai-dashboard-dev'
-      : (process.env['S3_BUCKET_NAME'] || 'test-bucket');
-    
-    this.uploadExpiration = parseInt(process.env['S3_UPLOAD_EXPIRATION'] || '300', 10);
-
-    if (isDevelopment) {
-      // Development: Use Minio with two different clients
-      const credentials = {
-        accessKeyId: 'minioadmin',
-        secretAccessKey: 'minioadmin',
-      };
-      
-      // Client for direct S3 operations (uses internal Docker network)
-      this.s3Client = new S3Client({
-        region: 'us-east-1',
-        endpoint: 'http://minio:9000',
-        forcePathStyle: true,
-        credentials,
-      });
-      
-      // Client for generating pre-signed URLs (uses public endpoint for correct signatures)
-      const publicEndpoint = process.env['S3_PUBLIC_ENDPOINT'] || 'http://localhost:9000';
-      this.presignClient = new S3Client({
-        region: 'us-east-1',
-        endpoint: publicEndpoint,
-        forcePathStyle: true,
-        credentials,
-      });
-    } else {
-      // Production: Use AWS S3 with environment variables
-      const region = process.env['AWS_REGION'] || 'us-east-1';
-      const accessKeyId = process.env['AWS_ACCESS_KEY_ID'] || 'test-access-key';
-      const secretAccessKey = process.env['AWS_SECRET_ACCESS_KEY'] || 'test-secret-key';
-
-      const client = new S3Client({
-        region,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-      });
-      
-      this.s3Client = client;
-      this.presignClient = client; // Same client for production
-    }
+    this.s3Client = config.s3Client;
+    this.presignClient = config.presignClient;
+    this.bucketName = config.bucketName;
+    this.uploadExpiration = config.uploadExpiration;
   }
 
   /**

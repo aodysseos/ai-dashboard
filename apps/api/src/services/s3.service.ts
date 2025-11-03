@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, ServerSideEncryption } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createS3Clients } from './s3.client';
 
 export class S3Service {
   private presignClient: S3Client;
@@ -7,42 +8,11 @@ export class S3Service {
   private uploadExpiration: number;
 
   constructor() {
-    const isDevelopment = process.env['NODE_ENV'] === 'development';
+    const config = createS3Clients();
     
-    // Use hardcoded bucket name for development, environment variable for production
-    this.bucketName = isDevelopment 
-      ? 'ai-dashboard-dev'
-      : (process.env['S3_BUCKET_NAME'] || 'test-bucket');
-    
-    this.uploadExpiration = parseInt(process.env['S3_UPLOAD_EXPIRATION'] || '300', 10);
-
-    if (isDevelopment) {
-      // Development: Use Minio client for generating pre-signed URLs
-      // Uses public endpoint (localhost:9000) for correct signature validation
-      const publicEndpoint = process.env['S3_PUBLIC_ENDPOINT'] || 'http://localhost:9000';
-      this.presignClient = new S3Client({
-        region: 'us-east-1',
-        endpoint: publicEndpoint,
-        forcePathStyle: true,
-        credentials: {
-          accessKeyId: 'minioadmin',
-          secretAccessKey: 'minioadmin',
-        },
-      });
-    } else {
-      // Production: Use AWS S3
-      const region = process.env['AWS_REGION'] || 'us-east-1';
-      const accessKeyId = process.env['AWS_ACCESS_KEY_ID'] || 'test-access-key';
-      const secretAccessKey = process.env['AWS_SECRET_ACCESS_KEY'] || 'test-secret-key';
-
-      this.presignClient = new S3Client({
-        region,
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
-      });
-    }
+    this.presignClient = config.presignClient;
+    this.bucketName = config.bucketName;
+    this.uploadExpiration = config.uploadExpiration;
   }
 
   /**
