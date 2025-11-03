@@ -3,31 +3,25 @@ import {
   CreateMultipartUploadCommand, 
   UploadPartCommand, 
   CompleteMultipartUploadCommand, 
-  AbortMultipartUploadCommand 
+  AbortMultipartUploadCommand,
+  ServerSideEncryption
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createS3Clients } from './s3.client';
 
 export class S3MultipartService {
   private s3Client: S3Client;
+  private presignClient: S3Client;
   private bucketName: string;
   private uploadExpiration: number;
 
   constructor() {
-    this.bucketName = process.env['S3_BUCKET_NAME'] || 'test-bucket';
-    this.uploadExpiration = parseInt(process.env['S3_UPLOAD_EXPIRATION'] || '300', 10);
-
-    // Use default values for development if environment variables are not set
-    const region = process.env['AWS_REGION'] || 'us-east-1';
-    const accessKeyId = process.env['AWS_ACCESS_KEY_ID'] || 'test-access-key';
-    const secretAccessKey = process.env['AWS_SECRET_ACCESS_KEY'] || 'test-secret-key';
-
-    this.s3Client = new S3Client({
-      region,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-    });
+    const config = createS3Clients();
+    
+    this.s3Client = config.s3Client;
+    this.presignClient = config.presignClient;
+    this.bucketName = config.bucketName;
+    this.uploadExpiration = config.uploadExpiration;
   }
 
   /**
@@ -42,12 +36,27 @@ export class S3MultipartService {
         throw new Error('Only PDF files are allowed');
       }
 
-      const command = new CreateMultipartUploadCommand({
+      const isDevelopment = process.env['NODE_ENV'] === 'development';
+      
+      // Build command options
+      const commandOptions: {
+        Bucket: string;
+        Key: string;
+        ContentType: string;
+        ServerSideEncryption?: ServerSideEncryption;
+      } = {
         Bucket: this.bucketName,
         Key: key,
         ContentType: contentType,
-        ServerSideEncryption: 'AES256',
-      });
+      };
+
+      // Only add server-side encryption for production (AWS S3)
+      // Minio handles encryption differently
+      if (!isDevelopment) {
+        commandOptions.ServerSideEncryption = ServerSideEncryption.AES256;
+      }
+
+      const command = new CreateMultipartUploadCommand(commandOptions);
 
       const response = await this.s3Client.send(command);
       
@@ -81,7 +90,8 @@ export class S3MultipartService {
         PartNumber: partNumber,
       });
 
-      const presignedUrl = await getSignedUrl(this.s3Client, command, {
+      // Use presignClient for generating pre-signed URLs with correct signature
+      const presignedUrl = await getSignedUrl(this.presignClient, command, {
         expiresIn: this.uploadExpiration,
       });
 

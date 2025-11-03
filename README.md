@@ -67,9 +67,7 @@ This project includes a complete Docker setup with multi-stage builds for both d
 cp apps/api/.env.example apps/api/.env
 cp apps/client/.env.example apps/client/.env
 
-# 2. Update .env files with your AWS credentials
-
-# 3. Start all services in development mode
+# 2. Start all services in development mode (includes Minio)
 docker-compose -f docker-compose.dev.yml up
 
 # Or run in detached mode
@@ -84,6 +82,14 @@ docker-compose -f docker-compose.dev.yml logs -f
 - Source code mounted as volumes
 - Vite dev server on port 5173
 - Nodemon for API auto-restart
+- **Minio S3-compatible storage** (no AWS credentials needed)
+- Automatic bucket creation on startup
+
+**Minio Access:**
+- **Console UI:** http://localhost:9001
+- **Default credentials:** minioadmin / minioadmin
+- **Bucket name:** ai-dashboard-dev (auto-created)
+- **API endpoint:** http://localhost:9000 (internal: http://minio:9000)
 
 #### Production Mode
 
@@ -116,6 +122,7 @@ docker-compose logs -f
 |---------|-----------------|-----------------|-------------|
 | API | 3001 | 3001 | Express backend |
 | Client | 5173 | 80 | React frontend (Vite dev / Nginx prod) |
+| Minio | 9000, 9001 | N/A | S3-compatible storage (dev only) |
 
 ### Useful Docker Commands
 
@@ -172,16 +179,20 @@ The project uses different environment configurations for different scenarios:
    - Use `apps/api/.env.example` → `apps/api/.env`
    - Use `apps/client/.env.example` → `apps/client/.env`
    - Set `API_HOST=localhost`
+   - **Note:** Requires AWS S3 credentials (or use Docker for Minio)
 
 2. **Docker Development**:
    - Use `apps/api/.env.example` → `apps/api/.env`
    - Use `apps/client/.env.example` → `apps/client/.env`
    - Set `API_HOST=0.0.0.0` in API env
+   - **Minio is used automatically** (no AWS credentials needed)
+   - Storage is handled by local Minio instance
 
 3. **Docker Production**:
    - Use `env.docker.example` → `.env` (root)
    - Update with production URLs and credentials
    - Set `NODE_ENV=production`
+   - **AWS S3 credentials required** for production storage
 
 ### Troubleshooting
 
@@ -191,9 +202,22 @@ The project uses different environment configurations for different scenarios:
 lsof -i :3001  # For API
 lsof -i :5173  # For client dev
 lsof -i :80    # For client prod
+lsof -i :9000  # For Minio API
+lsof -i :9001  # For Minio Console
 
 # Stop the existing container
 docker-compose down
+```
+
+**Minio bucket not created:**
+```bash
+# Check Minio logs
+docker-compose -f docker-compose.dev.yml logs minio-init
+
+# Manually create bucket via Minio Console
+# 1. Go to http://localhost:9001
+# 2. Login with minioadmin/minioadmin
+# 3. Create bucket named 'ai-dashboard-dev'
 ```
 
 **Permission issues:**
