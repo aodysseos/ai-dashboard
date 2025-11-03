@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    container_name: ai-dashboard-api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - API_PORT=3001
+      - API_HOST=0.0.0.0
+      - CLIENT_URL=${CLIENT_URL:-http://localhost}
+      # AWS S3 Configuration
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_UPLOAD_EXPIRATION=${S3_UPLOAD_EXPIRATION:-300}
+    networks:
+      - ai-dashboard-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+      target: production
+    container_name: ai-dashboard-client
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3001}
+      - VITE_APP_NAME=${VITE_APP_NAME:-AI Dashboard}
+    networks:
+      - ai-dashboard-network
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  ai-dashboard-network:
+    driver: bridge
+
