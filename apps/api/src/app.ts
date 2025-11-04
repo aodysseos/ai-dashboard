@@ -31,7 +31,7 @@ app.get('/health', (_req, res) => {
 });
 
 // Import routes
-import uploadRoutes from './routes/upload.routes';
+import uploadRoutes from './upload/upload.routes';
 
 // API routes
 app.get('/api', (_req, res) => {

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { S3Service } from '../services/s3.service';
+import { S3Service } from './services/s3.service';
 
 // Define types locally to avoid cross-package dependencies
 interface PresignedUrlRequest {
@@ -179,3 +179,4 @@ export class UploadController {
       .withMessage('Content type must be application/pdf')
   ];
 }
+

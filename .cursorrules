@@ -1,0 +1,460 @@
+# AI Dashboard - Code Generation Rules
+
+You are an AI assistant helping with the AI Dashboard project, a Turborepo monorepo with a React frontend (Vite + TypeScript) and Express backend (Node.js + TypeScript).
+
+## Project Structure
+
+```
+apps/
+  api/          # Express.js backend
+  client/       # React + Vite frontend
+packages/
+  types/        # Shared TypeScript types
+```
+
+---
+
+# General Rules
+
+Apply these rules to all code (backend, frontend, and shared packages).
+
+## Code Quality
+- Use TypeScript for all code
+- Prefer functional programming patterns
+- Use explicit types, avoid `any` unless absolutely necessary
+- Include comprehensive JSDoc comments for public APIs
+- Use environment variables for configuration
+- Handle errors gracefully with proper error messages
+
+## Linting and Formatting
+
+### ESLint
+- All code must pass ESLint without errors or warnings
+- Backend: `apps/api/.eslintrc.cjs` (Node.js + TypeScript rules)
+- Frontend: `apps/client/.eslintrc.cjs` (React + TypeScript rules)
+- Run `npm run lint` to check all workspaces
+- Run `npm run lint:fix` in each workspace to auto-fix issues
+- `@typescript-eslint/no-explicit-any` is set to 'warn' - use sparingly
+- Unused variables starting with `_` are allowed (e.g., `_req`, `_next`)
+
+### Prettier
+- All code must be formatted with Prettier
+- Configuration: `.prettierrc` in root
+- Enforces: single quotes, semicolons, 100 char line width, 2 space indentation
+- Run `npm run format` to format all files
+- Run `npm run format:check` to verify formatting without changes
+- VS Code: Format on save is enabled by default
+
+### EditorConfig
+- `.editorconfig` ensures consistent settings across editors
+- Enforces: UTF-8, LF line endings, 2 space indentation, trim trailing whitespace
+
+## Naming Conventions
+- **Variables/Functions**: camelCase (e.g., `getUserById`, `isActive`)
+- **Classes**: PascalCase (e.g., `UploadController`, `UserService`)
+- **Interfaces**: PascalCase (e.g., `PresignedUrlRequest`, `UserProfile`)
+- **Constants**: UPPER_SNAKE_CASE for true constants (e.g., `MAX_FILE_SIZE`, `API_VERSION`)
+- **Files**: Follow domain-specific conventions (see Backend/Frontend sections)
+
+## Shared Types (packages/types)
+
+### File Structure
+```
+src/
+  api/          # Backend types
+  client/       # Frontend types
+  core/         # Shared types
+  index.ts      # Re-exports
+```
+
+### Patterns
+- Define interfaces, not types (prefer `interface` over `type`)
+- Use descriptive names with context (e.g., `PresignedUrlRequest`, not `Request`)
+- Export all types from `index.ts`
+- Document complex types with JSDoc
+
+## Documentation
+- Add JSDoc comments for:
+  - Exported functions/classes
+  - Complex logic
+  - Non-obvious behavior
+  - Public APIs
+- Use inline comments sparingly, prefer self-documenting code
+- Update README when adding new features
+
+## Commit Conventions
+
+### Format
+All commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+```
+<type>(<scope>): <subject>
+```
+
+### Types
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc)
+- `refactor`: Code refactoring
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `build`: Build system or dependencies
+- `ci`: CI/CD changes
+- `chore`: Other changes (maintenance)
+- `revert`: Revert a previous commit
+
+### Scopes (optional but recommended)
+- `upload`: Upload-related changes
+- `api`: Backend API changes
+- `client`: Frontend changes
+- `types`: Shared types changes
+
+### Rules
+- Subject must be lowercase (except acronyms)
+- Subject must not end with a period
+- Use imperative mood ("add" not "added")
+- Commits are validated by commitlint via git hook
+
+### Examples
+```bash
+feat(upload): add multipart upload support
+fix(api): resolve CORS issue on upload endpoint
+docs: update setup instructions
+refactor(client): reorganize component structure
+test(upload): add tests for S3 service
+```
+
+## Git Hooks
+
+### Pre-commit
+Before each commit, the following checks run automatically:
+- Prettier format check (`npm run format:check`)
+- ESLint on all workspaces (`npm run lint`)
+- Commits are blocked if checks fail
+
+### Commit Message
+- Validates commit message format using commitlint
+- Ensures adherence to Conventional Commits specification
+
+### Bypassing Hooks
+⚠️ Only in emergencies: `git commit --no-verify`
+
+## General Do Not
+- Don't use `var` (use `const` or `let`)
+- Don't use `any` without a good reason
+- Don't create files without following naming conventions
+- Don't commit without passing linting and formatting checks
+- Don't bypass git hooks unless absolutely necessary
+
+---
+
+# Server (Backend) Rules
+
+Rules for the Express.js backend in `apps/api`.
+
+## Domain-Driven Design Philosophy
+- Organize code by **feature/domain** (e.g., `upload`, `documents`, `users`), not by technical layer
+- Each domain is self-contained with its own controllers, services, and routes
+- Controllers handle HTTP requests and validation
+- Services contain business logic and external integrations
+- Keep domains loosely coupled and highly cohesive
+
+## File Naming
+- **Controllers**: `{domain}/{name}.controller.ts` (e.g., `upload/upload.controller.ts`)
+- **Services**: `{domain}/services/{name}.service.ts` (e.g., `upload/services/s3.service.ts`)
+- **Routes**: `{domain}/{domain}.routes.ts` (e.g., `upload/upload.routes.ts`)
+- **Clients/Utils**: `{domain}/services/{name}.client.ts` or `{name}.util.ts`
+- **Tests**: `__tests__/{name}.test.ts`
+
+## Directory Structure (Domain-Driven)
+```
+src/
+  {domain}/               # Domain folder (e.g., upload/)
+    {domain}.controller.ts     # Main controller
+    {feature}.controller.ts    # Additional controllers
+    {domain}.routes.ts         # Route definitions
+    services/                  # Domain services
+      {name}.service.ts
+      {name}.client.ts
+  __tests__/              # Test files
+  app.ts                  # Express app setup
+  server.ts               # Server entry point
+```
+
+### Example Domain Structure
+```
+src/
+  upload/
+    upload.controller.ts
+    multipart.controller.ts
+    upload.routes.ts
+    services/
+      s3.service.ts
+      s3.client.ts
+      s3.multipart.service.ts
+```
+
+## Code Style
+- **Classes**: PascalCase with descriptive suffix (e.g., `UploadController`, `S3Service`)
+- **Functions**: camelCase (e.g., `generatePresignedUrls`, `createS3Clients`)
+- **Interfaces**: PascalCase, define at top of file or export (e.g., `PresignedUrlRequest`)
+- **Class methods**: Use arrow functions for auto-binding `this`
+- **Validation**: Use `express-validator`, define as class properties
+
+## Patterns
+- **Domain Organization**: Group related features together (e.g., all upload-related code in `upload/`)
+- **Controllers**: Handle HTTP layer - request validation, response formatting, error handling
+- **Services**: Handle business logic - external APIs, data processing, domain rules
+- **Export classes** for controllers and services
+- **Constructor injection** for service dependencies
+- **Consistent response format**: `{ success: boolean, data?: any, errors?: ErrorObject[] }`
+- **Error objects**: `{ code: string, message: string, field?: string }`
+- **Async/await**, not callbacks
+- **Comprehensive JSDoc** for exported functions/classes
+- **Route mounting**: Import domain routes in `app.ts` as `{domain}Routes` from `./{domain}/{domain}.routes`
+
+## When to Create a New Domain
+Create a new domain folder when you have:
+- A distinct feature or business capability (e.g., authentication, payments, notifications)
+- Multiple related endpoints that share common logic
+- Domain-specific services or business rules
+- At least 2-3 related routes
+
+## Domain Structure Guidelines
+- Keep controllers thin - delegate business logic to services
+- Services should be reusable across controllers
+- Use services for external integrations (S3, databases, APIs)
+- Co-locate related code within the same domain
+- Avoid cross-domain imports - use shared services or events instead
+
+## Error Handling
+- Always use try-catch in async handlers
+- Return consistent error format
+- Use appropriate HTTP status codes
+- Log errors with `console.error`
+
+## Testing (Jest)
+- File: `{name}.test.ts`
+- Use `supertest` for API testing
+- Mock external services
+- Test success and error cases
+
+## Example Controller
+```typescript
+// upload/upload.controller.ts
+import { Request, Response } from 'express';
+import { body, validationResult } from 'express-validator';
+import { MyService } from './services/my.service';
+
+export class UploadController {
+  private myService: MyService;
+
+  constructor() {
+    this.myService = new MyService();
+  }
+
+  /**
+   * Handle request description
+   */
+  myMethod = async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Implementation
+      res.json({ success: true, data: result });
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        errors: [{ code: 'ERROR_CODE', message: 'Error message' }] 
+      });
+    }
+  };
+
+  validateMyRequest = [
+    body('field').isString().withMessage('Field must be a string'),
+  ];
+}
+```
+
+## Example Routes
+```typescript
+// upload/upload.routes.ts
+import { Router } from 'express';
+import { UploadController } from './upload.controller';
+
+const router = Router();
+const controller = new UploadController();
+
+router.post('/upload', controller.validateMyRequest, controller.myMethod);
+
+export default router;
+```
+
+## Example Service
+```typescript
+// upload/services/s3.service.ts
+import { S3Client } from '@aws-sdk/client-s3';
+import { createS3Clients } from './s3.client';
+
+export class S3Service {
+  private s3Client: S3Client;
+  private bucketName: string;
+
+  constructor() {
+    const config = createS3Clients();
+    this.s3Client = config.s3Client;
+    this.bucketName = config.bucketName;
+  }
+
+  /**
+   * Generate pre-signed URL for file upload
+   */
+  async generatePresignedUrl(key: string): Promise<string> {
+    // Business logic here
+  }
+
+  /**
+   * Static utility methods for domain logic
+   */
+  static generateS3Key(filename: string): string {
+    const timestamp = Date.now();
+    const sanitized = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    return `uploads/${timestamp}/${sanitized}`;
+  }
+}
+```
+
+## Mounting Domain Routes in app.ts
+```typescript
+// app.ts
+import uploadRoutes from './upload/upload.routes';
+import documentRoutes from './documents/documents.routes';
+
+// Mount domain routes
+app.use('/api/upload', uploadRoutes);
+app.use('/api/documents', documentRoutes);
+```
+
+## Server Do Not
+- Don't create layer-based folders (`controllers/`, `services/`, `routes/`) - use domain folders instead
+- Don't import across domains - keep domains independent
+- Don't put business logic in controllers - delegate to services
+- Don't use named exports for route modules (use `export default router`)
+- Don't skip error handling
+- Don't hardcode values (use environment variables or constants)
+
+---
+
+# Client (Frontend) Rules
+
+Rules for the React frontend in `apps/client`.
+
+## File Naming
+- **Components**: `PascalCase.tsx` (e.g., `Button.tsx`, `PdfUpload.tsx`)
+- **Hooks**: `useCamelCase.ts` (e.g., `useUpload.ts`, `usePdfUpload.ts`)
+- **Utils**: `camelCase.ts` (e.g., `utils.ts`)
+- **Types**: `camelCase.types.ts` (e.g., `button.types.ts`)
+- **Styles**: `camelCase.styles.ts` (e.g., `sidebar.styles.ts`)
+- **Tests**: `ComponentName.test.tsx`
+
+## Directory Structure for Components
+```
+components/
+  button/                # kebab-case folder
+    button.tsx           # lowercase component file
+    index.ts             # Exports
+  pdf-upload/
+    PdfUpload.tsx
+    PdfUploadItem.tsx
+    usePdfUpload.ts      # Co-located hook
+    index.ts
+```
+
+## Component Folder Pattern
+Each component folder must have:
+1. Component file(s) in PascalCase.tsx
+2. `index.ts` that exports the component
+3. Optional: types file, styles file, hook file
+
+## Code Style
+- **Components**: PascalCase, use named exports (e.g., `export function Button() {}`)
+- **Hooks**: camelCase starting with `use` (e.g., `useUpload`, `useSidebar`)
+- **Props interfaces**: `ComponentNameProps` (e.g., `ButtonProps`, `PdfUploadProps`)
+- **Functions**: camelCase (e.g., `handleUpload`, `generatePresignedUrls`)
+- **Constants**: UPPER_SNAKE_CASE for true constants, camelCase for config objects
+
+## Patterns
+- Use React functional components, not class components
+- Use hooks for state management
+- Props: Define interface with descriptive names, destructure in function signature
+- Use `React.forwardRef` for components that need refs
+- Tailwind CSS for styling with `cn()` utility from `lib/utils`
+- Use Radix UI for complex UI components
+- Use Lucide React for icons
+- Component structure: imports → types → component → exports
+
+## Import Aliases
+- `@/` → `apps/client/src/`
+- `@workspace/types` → `packages/types/src/`
+
+## Styling with Tailwind
+- Use `cn()` utility for conditional classes
+- Prefer Tailwind utilities over custom CSS
+- Use `class-variance-authority` (cva) for variant-based components
+- Group related classes: layout → spacing → typography → colors
+
+## Error Handling
+- Display user-friendly error messages
+- Use error state in hooks
+- Handle loading states
+- Validate user input before API calls
+
+## Testing (Vitest + Testing Library)
+- File: `{name}.test.tsx`
+- Test user interactions, not implementation
+- Use `screen.getByRole` for queries
+- Mock API calls
+
+## Example Component
+```typescript
+import { Upload } from 'lucide-react';
+import { cn } from '@/common/lib/utils';
+
+export interface MyComponentProps {
+  title: string;
+  onUpload: () => void;
+  className?: string;
+}
+
+export function MyComponent({ title, onUpload, className }: MyComponentProps) {
+  return (
+    <div className={cn("space-y-4", className)}>
+      <h2>{title}</h2>
+      <button onClick={onUpload}>
+        <Upload className="h-4 w-4" />
+        Upload
+      </button>
+    </div>
+  );
+}
+```
+
+## Example Hook
+```typescript
+import { useState } from 'react';
+
+export function useMyHook() {
+  const [state, setState] = useState<Type>(initialValue);
+  
+  const myFunction = async () => {
+    // Implementation
+  };
+
+  return {
+    state,
+    myFunction,
+  };
+}
+```
+
+## Client Do Not
+- Don't use `default` exports (use named exports for components, hooks, utils)
+- Don't forget to add `index.ts` when creating component folders

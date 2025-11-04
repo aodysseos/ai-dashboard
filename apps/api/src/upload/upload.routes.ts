@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { UploadController } from '../controllers/upload.controller';
-import { MultipartController } from '../controllers/multipart.controller';
+import { UploadController } from './upload.controller';
+import { MultipartController } from './multipart.controller';
 
 const router = Router();
 const uploadController = new UploadController();
@@ -61,3 +61,4 @@ router.delete(
 );
 
 export default router;
+
