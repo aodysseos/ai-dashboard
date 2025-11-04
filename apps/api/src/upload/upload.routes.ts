@@ -1,10 +1,19 @@
 import { Router } from 'express';
-import { UploadController } from './upload.controller';
-import { MultipartController } from './multipart.controller';
+import {
+  generatePresignedUrls,
+  validatePresignedUrlRequest
+} from './upload.controller';
+import {
+  initiateMultipartUpload,
+  generatePresignedPartUrl,
+  completeMultipartUpload,
+  abortMultipartUpload,
+  validateInitiateRequest,
+  validatePartRequest,
+  validateCompleteRequest
+} from './multipart.controller';
 
 const router = Router();
-const uploadController = new UploadController();
-const multipartController = new MultipartController();
 
 /**
  * @route POST /api/upload/presigned-urls
@@ -13,8 +22,8 @@ const multipartController = new MultipartController();
  */
 router.post(
   '/presigned-urls',
-  uploadController.validatePresignedUrlRequest,
-  uploadController.generatePresignedUrls
+  validatePresignedUrlRequest,
+  generatePresignedUrls
 );
 
 /**
@@ -24,8 +33,8 @@ router.post(
  */
 router.post(
   '/multipart/initiate',
-  multipartController.validateInitiateRequest,
-  multipartController.initiateMultipartUpload
+  validateInitiateRequest,
+  initiateMultipartUpload
 );
 
 /**
@@ -35,8 +44,8 @@ router.post(
  */
 router.post(
   '/multipart/presigned-part',
-  multipartController.validatePartRequest,
-  multipartController.generatePresignedPartUrl
+  validatePartRequest,
+  generatePresignedPartUrl
 );
 
 /**
@@ -46,8 +55,8 @@ router.post(
  */
 router.post(
   '/multipart/complete',
-  multipartController.validateCompleteRequest,
-  multipartController.completeMultipartUpload
+  validateCompleteRequest,
+  completeMultipartUpload
 );
 
 /**
@@ -57,7 +66,7 @@ router.post(
  */
 router.delete(
   '/multipart/abort',
-  multipartController.abortMultipartUpload
+  abortMultipartUpload
 );
 
 export default router;

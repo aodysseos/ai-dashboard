@@ -1,7 +1,12 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { S3MultipartService } from './services/s3.multipart.service';
-import { S3Service } from './services/s3.service';
+import {
+  initiateMultipartUpload as initiateMultipartUploadService,
+  generatePresignedPartUrl as generatePresignedPartUrlService,
+  completeMultipartUpload as completeMultipartUploadService,
+  abortMultipartUpload as abortMultipartUploadService
+} from './services/s3.multipart.service';
+import { generateS3Key } from './services/s3.service';
 
 // Define types locally to avoid cross-package dependencies
 interface MultipartUploadInitiateRequest {
@@ -41,17 +46,10 @@ interface MultipartUploadCompleteResponse {
   etag: string;
 }
 
-export class MultipartController {
-  private s3MultipartService: S3MultipartService;
-
-  constructor() {
-    this.s3MultipartService = new S3MultipartService();
-  }
-
-  /**
-   * Initiate multipart upload
-   */
-  initiateMultipartUpload = async (req: Request, res: Response): Promise<void> => {
+/**
+ * Initiate multipart upload
+ */
+export async function initiateMultipartUpload(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -81,10 +79,10 @@ export class MultipartController {
       }
 
       // Generate S3 key
-      const key = S3Service.generateS3Key(filename);
+      const key = generateS3Key(filename);
 
       // Initiate multipart upload
-      const result = await this.s3MultipartService.initiateMultipartUpload(key, contentType);
+      const result = await initiateMultipartUploadService(key, contentType);
 
       const response: MultipartUploadInitiateResponse = {
         uploadId: result.uploadId,
@@ -106,12 +104,12 @@ export class MultipartController {
         }]
       });
     }
-  };
+}
 
-  /**
-   * Generate pre-signed URL for uploading a part
-   */
-  generatePresignedPartUrl = async (req: Request, res: Response): Promise<void> => {
+/**
+ * Generate pre-signed URL for uploading a part
+ */
+export async function generatePresignedPartUrl(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -140,7 +138,7 @@ export class MultipartController {
         return;
       }
 
-      const result = await this.s3MultipartService.generatePresignedPartUrl(key, uploadId, partNumber);
+      const result = await generatePresignedPartUrlService(key, uploadId, partNumber);
 
       const response: MultipartUploadPartResponse = {
         partNumber,
@@ -163,12 +161,12 @@ export class MultipartController {
         }]
       });
     }
-  };
+}
 
-  /**
-   * Complete multipart upload
-   */
-  completeMultipartUpload = async (req: Request, res: Response): Promise<void> => {
+/**
+ * Complete multipart upload
+ */
+export async function completeMultipartUpload(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -208,10 +206,11 @@ export class MultipartController {
               message: 'Part numbers must be sequential starting from 1'
             }]
           });
+          return;
         }
       }
 
-      const result = await this.s3MultipartService.completeMultipartUpload(uploadId, key, parts);
+      const result = await completeMultipartUploadService(uploadId, key, parts);
 
       const response: MultipartUploadCompleteResponse = {
         location: result.location,
@@ -233,12 +232,12 @@ export class MultipartController {
         }]
       });
     }
-  };
+}
 
-  /**
-   * Abort multipart upload
-   */
-  abortMultipartUpload = async (req: Request, res: Response): Promise<void> => {
+/**
+ * Abort multipart upload
+ */
+export async function abortMultipartUpload(req: Request, res: Response): Promise<void> {
     try {
       const { uploadId, key } = req.body;
 
@@ -253,7 +252,7 @@ export class MultipartController {
         return;
       }
 
-      await this.s3MultipartService.abortMultipartUpload(key, uploadId);
+      await abortMultipartUploadService(key, uploadId);
 
       res.json({
         success: true,
@@ -270,12 +269,12 @@ export class MultipartController {
         }]
       });
     }
-  };
+}
 
-  /**
-   * Validation middleware for multipart upload initiation
-   */
-  validateInitiateRequest = [
+/**
+ * Validation middleware for multipart upload initiation
+ */
+export const validateInitiateRequest = [
     body('filename')
       .isString()
       .isLength({ min: 1, max: 255 })
@@ -288,12 +287,12 @@ export class MultipartController {
     body('size')
       .isInt({ min: 5 * 1024 * 1024 + 1 })
       .withMessage('File size must be greater than 5MB for multipart upload')
-  ];
+];
 
-  /**
-   * Validation middleware for part URL generation
-   */
-  validatePartRequest = [
+/**
+ * Validation middleware for part URL generation
+ */
+export const validatePartRequest = [
     body('uploadId')
       .isString()
       .isLength({ min: 1 })
@@ -307,12 +306,12 @@ export class MultipartController {
     body('partNumber')
       .isInt({ min: 1, max: 10000 })
       .withMessage('Part number must be between 1 and 10000')
-  ];
+];
 
-  /**
-   * Validation middleware for multipart completion
-   */
-  validateCompleteRequest = [
+/**
+ * Validation middleware for multipart completion
+ */
+export const validateCompleteRequest = [
     body('uploadId')
       .isString()
       .isLength({ min: 1 })
@@ -335,6 +334,5 @@ export class MultipartController {
       .isString()
       .isLength({ min: 1 })
       .withMessage('ETag is required for each part')
-  ];
-}
+];
 
