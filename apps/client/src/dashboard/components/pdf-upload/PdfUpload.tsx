@@ -1,8 +1,10 @@
+import { useMemo, useCallback } from 'react';
 import { Upload, FileText, AlertCircle } from 'lucide-react';
 import { Button } from '../button';
 import { PdfUploadItem } from './PdfUploadItem';
 import { usePdfUpload } from './usePdfUpload';
 import { cn } from '../../../common/lib/utils';
+import { UPLOADING_TEXT, PREPARING_TEXT } from '@/common/constants';
 
 export function PdfUpload() {
   const {
@@ -24,15 +26,42 @@ export function PdfUpload() {
     handleFileInput,
   } = usePdfUpload();
 
-  const handleUpload = () => {
+  const handleUpload = useCallback(() => {
     if (hasPendingFiles) {
       uploadFiles();
     }
-  };
+  }, [hasPendingFiles, uploadFiles]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     clearFiles();
-  };
+  }, [clearFiles]);
+
+  // Memoize file counts to avoid recalculation
+  const successCount = useMemo(
+    () => files.filter((f) => f.status === 'success').length,
+    [files]
+  );
+  const errorCount = useMemo(
+    () => files.filter((f) => f.status === 'error').length,
+    [files]
+  );
+  const uploadingCount = useMemo(
+    () => files.filter((f) => f.status === 'uploading').length,
+    [files]
+  );
+  const pendingCount = useMemo(
+    () => files.filter((f) => f.status === 'pending').length,
+    [files]
+  );
+
+  const handleClearErrors = useCallback(() => {
+    // Remove only error files
+    files.forEach((file) => {
+      if (file.status === 'error') {
+        removeFile(file.id);
+      }
+    });
+  }, [files, removeFile]);
 
   return (
     <div className="space-y-4">
@@ -99,17 +128,17 @@ export function PdfUpload() {
             <div className="flex items-center space-x-2">
               {hasSuccessFiles && (
                 <span className="text-xs text-green-600">
-                  {files.filter(f => f.status === 'success').length} uploaded
+                  {successCount} uploaded
                 </span>
               )}
               {hasErrorFiles && (
                 <span className="text-xs text-red-600">
-                  {files.filter(f => f.status === 'error').length} failed
+                  {errorCount} failed
                 </span>
               )}
               {hasUploadingFiles && (
                 <span className="text-xs text-blue-600">
-                  {files.filter(f => f.status === 'uploading').length} uploading
+                  {uploadingCount} uploading
                 </span>
               )}
             </div>
@@ -143,14 +172,7 @@ export function PdfUpload() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  // Remove only error files
-                  files.forEach(file => {
-                    if (file.status === 'error') {
-                      removeFile(file.id);
-                    }
-                  });
-                }}
+                onClick={handleClearErrors}
                 disabled={isUploading || isGeneratingUrls}
               >
                 Clear Errors
@@ -166,12 +188,12 @@ export function PdfUpload() {
             {isUploading || isGeneratingUrls ? (
               <>
                 <FileText className="h-4 w-4 mr-2 animate-pulse" />
-                {isGeneratingUrls ? 'Preparing...' : 'Uploading...'}
+                {isGeneratingUrls ? PREPARING_TEXT : UPLOADING_TEXT}
               </>
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                Upload {files.filter(f => f.status === 'pending').length} Files
+                Upload {pendingCount} Files
               </>
             )}
           </Button>
@@ -183,8 +205,8 @@ export function PdfUpload() {
         <div className="p-3 bg-muted/50 rounded-lg">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
-              Upload complete: {hasSuccessFiles ? files.filter(f => f.status === 'success').length : 0} successful
-              {hasErrorFiles && `, ${files.filter(f => f.status === 'error').length} failed`}
+              Upload complete: {successCount} successful
+              {hasErrorFiles && `, ${errorCount} failed`}
             </span>
             {hasSuccessFiles && (
               <Button

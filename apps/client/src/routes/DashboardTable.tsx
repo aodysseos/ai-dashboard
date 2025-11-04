@@ -4,16 +4,7 @@ import { ArrowUpDown } from "lucide-react"
 import { Button } from "../dashboard/components/button"
 import { Badge } from "../dashboard/components/badge"
 import { DataTable } from "../dashboard/components/data-table"
-
-// Sample data type
-interface DashboardData {
-  id: string
-  name: string
-  status: "active" | "inactive" | "pending"
-  revenue: number
-  growth: number
-  lastUpdated: string
-}
+import type { DashboardData } from "@workspace/types"
 
 // Sample data
 const sampleData: DashboardData[] = [

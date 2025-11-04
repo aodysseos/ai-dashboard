@@ -3,14 +3,20 @@ import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
+import { validateEnv } from './common/lib/env'
 import './index.css'
 
-// Create a client
+// Validate environment variables on startup
+validateEnv()
+
+// Create a client with optimized defaults
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false,
+      retry: 1, // Only retry once on failure
+      refetchOnMount: false, // Don't refetch on mount if data is fresh
     },
   },
 })

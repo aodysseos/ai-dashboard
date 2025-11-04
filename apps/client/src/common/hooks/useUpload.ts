@@ -1,48 +1,49 @@
 import { useState } from 'react';
-import { 
-  PresignedUrlRequest, 
-  PresignedUrlResponse, 
-  UploadRequest, 
+import {
+  PresignedUrlRequest,
+  PresignedUrlResponse,
+  UploadRequest,
   UploadResponse,
   MultipartUploadInitiateRequest,
   MultipartUploadInitiateResponse,
   MultipartUploadPartRequest,
   MultipartUploadPartResponse,
   MultipartUploadCompleteRequest,
-  MultipartUploadCompleteResponse
+  MultipartUploadCompleteResponse,
 } from '@workspace/types';
+import { fetchApi } from '../lib/api';
+import { createUserFriendlyError, logError } from '../lib/errorHandler';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
+/**
+ * Hook for generating presigned URLs for file uploads
+ * @returns Object with generatePresignedUrls function and loading/error states
+ */
 export function useGeneratePresignedUrls() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const generatePresignedUrls = async (files: PresignedUrlRequest[]): Promise<PresignedUrlResponse[]> => {
+  const generatePresignedUrls = async (
+    files: PresignedUrlRequest[]
+  ): Promise<PresignedUrlResponse[]> => {
     setIsLoading(true);
     setError(null);
 
     try {
       const request: UploadRequest = { files };
-      
-      const response = await fetch(`${API_BASE_URL}/api/upload/presigned-urls`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.errors?.[0]?.message || 'Failed to generate pre-signed URLs');
-      }
+      const data = await fetchApi<{ success: boolean; data: UploadResponse }>(
+        '/api/upload/presigned-urls',
+        {
+          method: 'POST',
+          body: JSON.stringify(request),
+        }
+      );
 
-      const data: { success: boolean; data: UploadResponse } = await response.json();
       return data.data.uploads;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMessage = createUserFriendlyError(err, 'Failed to generate pre-signed URLs');
       setError(errorMessage);
+      logError(err, 'useGeneratePresignedUrls');
       throw err;
     } finally {
       setIsLoading(false);
@@ -56,11 +57,21 @@ export function useGeneratePresignedUrls() {
   };
 }
 
+/**
+ * Hook for uploading files to S3 using presigned URLs
+ * @returns Object with uploadFile function and upload state
+ */
 export function useUploadToS3() {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Upload a file to S3 using a presigned URL
+   * @param file - The file to upload
+   * @param presignedUrl - The presigned URL for upload
+   * @param onProgress - Optional progress callback
+   */
   const uploadFile = async (
     file: File,
     presignedUrl: string,
@@ -87,16 +98,22 @@ export function useUploadToS3() {
             setProgress(100);
             resolve();
           } else {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+            const error = new Error(`Upload failed with status ${xhr.status}`);
+            logError(error, 'useUploadToS3.uploadFile');
+            reject(error);
           }
         });
 
         xhr.addEventListener('error', () => {
-          reject(new Error('Upload failed due to network error'));
+          const error = new Error('Upload failed due to network error');
+          logError(error, 'useUploadToS3.uploadFile');
+          reject(error);
         });
 
         xhr.addEventListener('abort', () => {
-          reject(new Error('Upload was aborted'));
+          const error = new Error('Upload was aborted');
+          logError(error, 'useUploadToS3.uploadFile');
+          reject(error);
         });
 
         xhr.open('PUT', presignedUrl);
@@ -104,8 +121,9 @@ export function useUploadToS3() {
         xhr.send(file);
       });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Upload failed';
+      const errorMessage = createUserFriendlyError(err, 'Upload failed');
       setError(errorMessage);
+      logError(err, 'useUploadToS3');
       throw err;
     } finally {
       setIsUploading(false);
@@ -120,117 +138,117 @@ export function useUploadToS3() {
   };
 }
 
+/**
+ * Hook for multipart upload operations
+ * @returns Object with multipart upload functions and loading/error states
+ */
 export function useMultipartUpload() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const initiateMultipartUpload = async (request: MultipartUploadInitiateRequest): Promise<MultipartUploadInitiateResponse> => {
+  /**
+   * Initiate a multipart upload
+   */
+  const initiateMultipartUpload = async (
+    request: MultipartUploadInitiateRequest
+  ): Promise<MultipartUploadInitiateResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/multipart/initiate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+      const data = await fetchApi<{ success: boolean; data: MultipartUploadInitiateResponse }>(
+        '/api/upload/multipart/initiate',
+        {
+          method: 'POST',
+          body: JSON.stringify(request),
+        }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.errors?.[0]?.message || 'Failed to initiate multipart upload');
-      }
-
-      const data: { success: boolean; data: MultipartUploadInitiateResponse } = await response.json();
       return data.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMessage = createUserFriendlyError(err, 'Failed to initiate multipart upload');
       setError(errorMessage);
+      logError(err, 'useMultipartUpload.initiateMultipartUpload');
       throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generatePresignedPartUrl = async (request: MultipartUploadPartRequest): Promise<MultipartUploadPartResponse> => {
+  /**
+   * Generate presigned URL for a multipart upload part
+   */
+  const generatePresignedPartUrl = async (
+    request: MultipartUploadPartRequest
+  ): Promise<MultipartUploadPartResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/multipart/presigned-part`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+      const data = await fetchApi<{ success: boolean; data: MultipartUploadPartResponse }>(
+        '/api/upload/multipart/presigned-part',
+        {
+          method: 'POST',
+          body: JSON.stringify(request),
+        }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.errors?.[0]?.message || 'Failed to generate pre-signed part URL');
-      }
-
-      const data: { success: boolean; data: MultipartUploadPartResponse } = await response.json();
       return data.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMessage = createUserFriendlyError(err, 'Failed to generate pre-signed part URL');
       setError(errorMessage);
+      logError(err, 'useMultipartUpload.generatePresignedPartUrl');
       throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const completeMultipartUpload = async (request: MultipartUploadCompleteRequest): Promise<MultipartUploadCompleteResponse> => {
+  /**
+   * Complete a multipart upload
+   */
+  const completeMultipartUpload = async (
+    request: MultipartUploadCompleteRequest
+  ): Promise<MultipartUploadCompleteResponse> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/multipart/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-      });
+      const data = await fetchApi<{ success: boolean; data: MultipartUploadCompleteResponse }>(
+        '/api/upload/multipart/complete',
+        {
+          method: 'POST',
+          body: JSON.stringify(request),
+        }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.errors?.[0]?.message || 'Failed to complete multipart upload');
-      }
-
-      const data: { success: boolean; data: MultipartUploadCompleteResponse } = await response.json();
       return data.data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMessage = createUserFriendlyError(err, 'Failed to complete multipart upload');
       setError(errorMessage);
+      logError(err, 'useMultipartUpload.completeMultipartUpload');
       throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Abort a multipart upload
+   */
   const abortMultipartUpload = async (uploadId: string, key: string): Promise<void> => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/upload/multipart/abort`, {
+      await fetchApi<void>('/api/upload/multipart/abort', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ uploadId, key }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.errors?.[0]?.message || 'Failed to abort multipart upload');
-      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMessage = createUserFriendlyError(err, 'Failed to abort multipart upload');
       setError(errorMessage);
+      logError(err, 'useMultipartUpload.abortMultipartUpload');
       throw err;
     } finally {
       setIsLoading(false);

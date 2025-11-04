@@ -2,11 +2,20 @@
  * File upload utility functions
  */
 
-// Constants
-export const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
-export const DEFAULT_MAX_FILES = 200;
-export const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-export const DEFAULT_CONCURRENCY = 5;
+import {
+  CHUNK_SIZE,
+  DEFAULT_MAX_FILES,
+  DEFAULT_MAX_FILE_SIZE,
+  DEFAULT_CONCURRENCY,
+} from '../constants';
+
+// Re-export constants for backward compatibility
+export {
+  CHUNK_SIZE,
+  DEFAULT_MAX_FILES,
+  DEFAULT_MAX_FILE_SIZE,
+  DEFAULT_CONCURRENCY,
+};
 
 /**
  * Split a file into chunks for multipart upload
@@ -32,7 +41,7 @@ export function splitFileIntoChunks(
  * Generate a unique file ID
  */
 export function generateFileId(): string {
-  return Math.random().toString(36).substr(2, 9);
+  return Math.random().toString(36).slice(2, 11);
 }
 
 /**

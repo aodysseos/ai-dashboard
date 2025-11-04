@@ -21,6 +21,7 @@ import {
   TableRow,
 } from "../table"
 import { DataTableProps } from "./data-table.types"
+import { NO_RESULTS_TEXT } from "@/common/constants"
 
 export function DataTable<TData, TValue>({
   columns,
@@ -104,7 +105,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {NO_RESULTS_TEXT}
                 </TableCell>
               </TableRow>
             )}

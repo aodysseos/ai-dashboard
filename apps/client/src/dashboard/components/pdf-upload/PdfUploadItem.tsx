@@ -1,7 +1,9 @@
+import { memo, useMemo, useCallback } from 'react';
 import { FileText, X, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../button';
 import { Progress } from '../progress';
 import { Badge } from '../badge';
+import { formatFileSize } from '@/common/lib/utils';
 
 interface PdfUploadItemProps {
   file: {
@@ -14,16 +16,9 @@ interface PdfUploadItemProps {
   onRemove: (id: string) => void;
 }
 
-export function PdfUploadItem({ file, onRemove }: PdfUploadItemProps) {
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+function PdfUploadItemComponent({ file, onRemove }: PdfUploadItemProps) {
 
-  const getStatusIcon = () => {
+  const statusIcon = useMemo(() => {
     switch (file.status) {
       case 'pending':
         return <FileText className="h-4 w-4 text-muted-foreground" />;
@@ -36,9 +31,9 @@ export function PdfUploadItem({ file, onRemove }: PdfUploadItemProps) {
       default:
         return <FileText className="h-4 w-4 text-muted-foreground" />;
     }
-  };
+  }, [file.status]);
 
-  const getStatusBadge = () => {
+  const statusBadge = useMemo(() => {
     switch (file.status) {
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
@@ -51,12 +46,18 @@ export function PdfUploadItem({ file, onRemove }: PdfUploadItemProps) {
       default:
         return <Badge variant="secondary">Unknown</Badge>;
     }
-  };
+  }, [file.status]);
+
+  const formattedFileSize = useMemo(() => formatFileSize(file.file.size), [file.file.size]);
+
+  const handleRemove = useCallback(() => {
+    onRemove(file.id);
+  }, [file.id, onRemove]);
 
   return (
     <div className="flex items-center space-x-3 p-3 border rounded-lg bg-card">
       <div className="flex-shrink-0">
-        {getStatusIcon()}
+        {statusIcon}
       </div>
       
       <div className="flex-1 min-w-0">
@@ -65,11 +66,11 @@ export function PdfUploadItem({ file, onRemove }: PdfUploadItemProps) {
             {file.file.name}
           </p>
           <div className="flex items-center space-x-2">
-            {getStatusBadge()}
+            {statusBadge}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onRemove(file.id)}
+              onClick={handleRemove}
               className="h-6 w-6 p-0"
             >
               <X className="h-3 w-3" />
@@ -79,7 +80,7 @@ export function PdfUploadItem({ file, onRemove }: PdfUploadItemProps) {
         
         <div className="flex items-center justify-between mt-1">
           <p className="text-xs text-muted-foreground">
-            {formatFileSize(file.file.size)}
+            {formattedFileSize}
           </p>
           {file.status === 'uploading' && (
             <p className="text-xs text-muted-foreground">
@@ -103,3 +104,5 @@ export function PdfUploadItem({ file, onRemove }: PdfUploadItemProps) {
     </div>
   );
 }
+
+export const PdfUploadItem = memo(PdfUploadItemComponent);

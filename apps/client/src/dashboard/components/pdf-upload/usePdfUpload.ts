@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useFileUploadOrchestrator, type UploadFile } from '../../../common/hooks/useFileUploadOrchestrator';
 
 export interface UsePdfUploadOptions {
@@ -69,12 +69,12 @@ export function usePdfUpload(options: UsePdfUploadOptions = {}) {
     [addFiles]
   );
 
-  // Derived state
-  const hasFiles = files.length > 0;
-  const hasPendingFiles = files.some((f) => f.status === 'pending');
-  const hasUploadingFiles = files.some((f) => f.status === 'uploading');
-  const hasErrorFiles = files.some((f) => f.status === 'error');
-  const hasSuccessFiles = files.some((f) => f.status === 'success');
+  // Derived state with memoization
+  const hasFiles = useMemo(() => files.length > 0, [files.length]);
+  const hasPendingFiles = useMemo(() => files.some((f) => f.status === 'pending'), [files]);
+  const hasUploadingFiles = useMemo(() => files.some((f) => f.status === 'uploading'), [files]);
+  const hasErrorFiles = useMemo(() => files.some((f) => f.status === 'error'), [files]);
+  const hasSuccessFiles = useMemo(() => files.some((f) => f.status === 'success'), [files]);
 
   return {
     files,

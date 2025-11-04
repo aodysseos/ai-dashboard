@@ -15,6 +15,7 @@ import {
   DEFAULT_CONCURRENCY,
 } from '../lib/fileUploadUtils';
 import { PresignedUrlRequest } from '@workspace/types';
+import { logError } from '../lib/errorHandler';
 
 export interface UploadFile {
   id: string;
@@ -100,7 +101,7 @@ export function useFileUploadOrchestrator(
       });
 
       if (errors.length > 0) {
-        console.warn('File validation errors:', errors);
+        logError(new Error(errors.join('; ')), 'useFileUploadOrchestrator.addFiles');
       }
 
       setFiles((prev) => [...prev, ...validFiles]);
@@ -294,7 +295,7 @@ export function useFileUploadOrchestrator(
       // Execute all uploads with concurrency control
       await Promise.all(uploadPromises);
     } catch (error) {
-      console.error('Upload error:', error);
+      logError(error, 'useFileUploadOrchestrator.uploadFiles');
     } finally {
       setIsUploading(false);
     }

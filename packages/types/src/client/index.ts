@@ -103,3 +103,13 @@ export interface ThemeConfig {
     accent: string;
   };
 }
+
+// Dashboard table data types
+export interface DashboardData {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive' | 'pending';
+  revenue: number;
+  growth: number;
+  lastUpdated: string;
+}
