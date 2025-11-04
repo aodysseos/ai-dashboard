@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { S3MultipartService } from '../services/s3.multipart.service';
-import { S3Service } from '../services/s3.service';
+import { S3MultipartService } from './services/s3.multipart.service';
+import { S3Service } from './services/s3.service';
 
 // Define types locally to avoid cross-package dependencies
 interface MultipartUploadInitiateRequest {
@@ -337,3 +337,4 @@ export class MultipartController {
       .withMessage('ETag is required for each part')
   ];
 }
+
